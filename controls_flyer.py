@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Starter code for the controls project.
-This is the solution of the backyard flyer script, 
+This is the solution of the backyard flyer script,
 modified for all the changes required to get it working for controls.
 """
 
@@ -44,11 +44,11 @@ class ControlsFlyer(UnityDrone):
                                self.local_position_callback)
         self.register_callback(MsgID.LOCAL_VELOCITY, self.velocity_callback)
         self.register_callback(MsgID.STATE, self.state_callback)
-        
+
         self.register_callback(MsgID.ATTITUDE, self.attitude_callback)
         self.register_callback(MsgID.RAW_GYROSCOPE, self.gyro_callback)
-        
-    def position_controller(self):  
+
+    def position_controller(self):
         (self.local_position_target,
          self.local_velocity_target,
          yaw_cmd) = self.controller.trajectory_control(
@@ -64,7 +64,7 @@ class ControlsFlyer(UnityDrone):
         self.local_acceleration_target = np.array([acceleration_cmd[0],
                                                    acceleration_cmd[1],
                                                    0.0])
-        
+
     def attitude_controller(self):
         self.thrust_cmd = self.controller.altitude_control(
                 -self.local_position_target[2],
@@ -82,20 +82,21 @@ class ControlsFlyer(UnityDrone):
                 self.attitude[2])
         self.body_rate_target = np.array(
                 [roll_pitch_rate_cmd[0], roll_pitch_rate_cmd[1], yawrate_cmd])
-        
-    def bodyrate_controller(self):        
+
+    def bodyrate_controller(self):
         moment_cmd = self.controller.body_rate_control(
                 self.body_rate_target,
                 self.gyro_raw)
+
         self.cmd_moment(moment_cmd[0],
                         moment_cmd[1],
                         moment_cmd[2],
                         self.thrust_cmd)
-    
+
     def attitude_callback(self):
         if self.flight_state == States.WAYPOINT:
             self.attitude_controller()
-    
+
     def gyro_callback(self):
         if self.flight_state == States.WAYPOINT:
             self.bodyrate_controller()
@@ -103,15 +104,15 @@ class ControlsFlyer(UnityDrone):
     def local_position_callback(self):
         if self.flight_state == States.TAKEOFF:
             if -1.0 * self.local_position[2] > 0.95 * self.target_position[2]:
-                #self.all_waypoints = self.calculate_box()
                 (self.position_trajectory,
                  self.time_trajectory,
                  self.yaw_trajectory) = self.load_test_trajectory(time_mult=0.5)
+                for i in self.time_trajectory:
+                    print('self.time_trajectory:'.format(i))
                 self.all_waypoints = self.position_trajectory.copy()
                 self.waypoint_number = -1
                 self.waypoint_transition()
         elif self.flight_state == States.WAYPOINT:
-
             if time.time() > self.time_trajectory[self.waypoint_number]:
                 if len(self.all_waypoints) > 0:
                     self.waypoint_transition()
@@ -138,14 +139,6 @@ class ControlsFlyer(UnityDrone):
                 if ~self.armed & ~self.guided:
                     self.manual_transition()
 
-    def calculate_box(self):
-        print("Setting Home")
-        local_waypoints = [[10.0, 0.0, -3.0],
-                           [10.0, 10.0, -3.0],
-                           [0.0, 10.0, -3.0],
-                           [0.0, 0.0, -3.0]]
-        return local_waypoints
-
     def arming_transition(self):
         print("arming transition")
         self.take_control()
@@ -153,7 +146,7 @@ class ControlsFlyer(UnityDrone):
         # set the current location to be the home position
         self.set_home_position(self.global_position[0],
                                self.global_position[1],
-                               self.global_position[2])  
+                               self.global_position[2])
 
         self.flight_state = States.ARMING
 
@@ -165,7 +158,7 @@ class ControlsFlyer(UnityDrone):
         self.flight_state = States.TAKEOFF
 
     def waypoint_transition(self):
-        #print("waypoint transition")
+        # print("waypoint transition")
         self.waypoint_number = self.waypoint_number + 1
         self.target_position = self.all_waypoints.pop(0)
         self.flight_state = States.WAYPOINT
